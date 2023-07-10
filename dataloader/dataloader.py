@@ -10,8 +10,8 @@ def synced_windows(emg_signal, force_signal, window_size=100):
     # Calcula o número de janelas de EMG a serem geradas
     num_emg_windows = (emg_signal.shape[0] - window_size*emg_samples_per_force_sample) // emg_samples_per_force_sample
     # Inicializa os arrays para armazenar as janelas de EMG e força
-    emg_windows = tf.zeros((num_force_samples, window_size, emg_signal.shape[1], emg_signal.shape[2], emg_signal.shape[3]))
-    force_windows = tf.zeros((num_force_samples, force_signal.shape[-1]))
+    emg_windows = tf.zeros((num_force_samples, window_size, emg_signal.shape[1], emg_signal.shape[2], emg_signal.shape[3])).numpy()
+    force_windows = tf.zeros((num_force_samples, force_signal.shape[-1])).numpy()
     # Amostra o sinal de EMG de acordo com a relação de frequência
     emg_step = emg_samples_per_force_sample
     for i in range(num_force_samples):
