@@ -1,4 +1,3 @@
-import remotezip as rz
 import tensorflow as tf
 import einops
 import keras
