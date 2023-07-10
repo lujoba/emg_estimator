@@ -1,0 +1,48 @@
+{
+    "_meta": {
+        "hash": {
+            "sha256": "f4e4e75a85e8672f6e90e0d5b05cc4e04696a4b815f64e6c66c37329d693d4ae"
+        },
+        "pipfile-spec": 6,
+        "requires": {
+            "python_version": "3.9"
+        },
+        "sources": [
+            {
+                "name": "pypi",
+                "url": "https://pypi.org/simple",
+                "verify_ssl": true
+            }
+        ]
+    },
+    "default": {
+        "tensorflow": {
+            "version": "==2.5.0"
+        },
+        "keras": {
+            "version": "==2.4.3"
+        },
+        "tensorflow-probability": {
+            "version": "==0.13.0"
+        },
+        "wfdb": {
+            "version": "==3.4.0"
+        },
+        "matplotlib": {
+            "version": "==3.4.2"
+        },
+        "numpy": {
+            "version": "==1.19.5"
+        },
+        "tqdm": {
+            "version": "==4.61.1"
+        },
+        "seaborn": {
+            "version": "==0.11.1"
+        },
+        "einops": {
+            "version": "==0.3.0"
+        }
+    },
+    "develop": {}
+}
