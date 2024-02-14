@@ -150,62 +150,62 @@ class DilatedConv2Plus1D(tf.keras.layers.Layer):
         return x
 
 
-# class Estimator(tf.keras.Model):
-#     """
-#     The WaveNet class is a neural network model that uses the
-#     DilatedConv2Plus1D class to build WaveNet blocks with a variable number
-#     of layers and dilations
-#     """
-# 
-#     def __init__(self, num_blocks, num_layers, filters, kernel_size, dilations, input_shape_, num_lstm_blocks, **kwargs):
-#         super(Estimatior, self).__init__(**kwargs)
-#         self.num_blocks = num_blocks
-#         self.num_layers = num_layers
-#         self.filters = filters
-#         self.kernel_size = kernel_size
-#         self.dilations = dilations
-#         self.input_shape_ = input_shape_
-#         self.num_lstm_blocks = num_lstm_blocks
-# 
-#         # Build the model
-#         self.build_model()
-# 
-#     def build_model(self):
-#         # Define input layer
-#         inputs = tf.keras.Input(shape=self.input_shape_)
-# 
-#         # Build WaveNet blocks
-#         x = inputs
-#         for i in range(self.num_blocks):
-#             for j in range(self.num_layers):
-#                 dilation_rate = self.dilations[j % len(self.dilations)]
-#                 x = DilatedConv2Plus1D(dilation_rate=dilation_rate, filters=self.filters, kernel_size=self.kernel_size)(x)
-#         x = tf.keras.layers.ELU()(x)
-# 
-#         # Add residual blocks
-#         for i in range(self.num_blocks):
-#             x = add_residual_block(x, self.filters, (18, 3, 3))
-#             x = ResizeSignal(x.shape[2] // 4, x.shape[3] // 4)(x)
-#         x = tf.keras.layers.GlobalAveragePooling3D()(x)
-#         x = tf.keras.layers.Flatten()(x)
-# 
-#         # Output layer
-#         outputs = tf.keras.layers.Dense(1, activation="linear")(x)
-# 
-#         # Create the model
-#         self.model = tf.keras.Model(inputs=inputs, outputs=outputs)
-# 
-#     def call(self, inputs):
-#         return self.model(inputs)
-# 
-#     def summary(self):
-#         self.model.summary()
-# 
-#     def plot_model(self, show_shapes=False):
-#         tf.keras.utils.plot_model(
-#             self.model,
-#             show_shapes=show_shapes
-#         )
+class Estimator(tf.keras.Model):
+    """
+    The WaveNet class is a neural network model that uses the
+    DilatedConv2Plus1D class to build WaveNet blocks with a variable number
+    of layers and dilations
+    """
+
+    def __init__(self, num_blocks, num_layers, filters, kernel_size, dilations, input_shape_, **kwargs):
+        super(Estimator, self).__init__(**kwargs)
+        self.num_blocks = num_blocks
+        self.num_layers = num_layers
+        self.filters = filters
+        self.kernel_size = kernel_size
+        self.dilations = dilations
+        self.input_shape_ = input_shape_
+
+        # Build the model
+        self.build_model()
+
+    def build_model(self):
+        # Define input layer
+        inputs = tf.keras.Input(shape=self.input_shape_)
+
+        # Build WaveNet blocks
+        x = inputs
+        for i in range(self.num_blocks):
+            for j in range(self.num_layers):
+                dilation_rate = self.dilations[j % len(self.dilations)]
+                x = DilatedConv2Plus1D(dilation_rate=dilation_rate, filters=self.filters, kernel_size=self.kernel_size)(x)
+        x = tf.keras.layers.ELU()(x)
+
+        # Add residual blocks
+        for i in range(self.num_blocks):
+            x = add_residual_block(x, self.filters, (18, 3, 3))
+            x = ResizeSignal(-(-x.shape[2] // (2*(i+1))), -(-x.shape[3] // (2*(i+1))))(x)
+        x = tf.keras.layers.GlobalAveragePooling3D()(x)
+        x = tf.keras.layers.Flatten()(x)
+        outputs = layers.ReLU()(x)
+
+        # Output layer
+        # outputs = tf.keras.layers.Dense(1, activation="linear")(x)
+
+        # Create the model
+        self.model = tf.keras.Model(inputs=inputs, outputs=outputs)
+
+    def call(self, inputs):
+        return self.model(inputs)
+
+    def summary(self):
+        self.model.summary()
+
+    def plot_model(self, show_shapes=False):
+        tf.keras.utils.plot_model(
+            self.model,
+            show_shapes=show_shapes
+        )
 
 
 def estimator(
@@ -238,13 +238,13 @@ def estimator(
     x = layers.ELU()(x)
     # Add residual blocks
     for i in range(num_blocks):
-        x = add_residual_block(x, filters, (18, 3, 3))
-        x = ResizeSignal(x.shape[2] // 4, x.shape[3] // 4)(x)
+        x = add_residual_block(x, filters*(i+1), (18, 3, 3))
+        x = ResizeSignal(x.shape[2] // 2*(i+1), x.shape[3] // 2*(i+1))(x)
     x = layers.GlobalAveragePooling3D()(x)
     x = layers.Flatten()(x)
     x = layers.ReLU()(x)
     # Linear combinator layer
-    x = layers.Dense(1, activation="linear")(x)
+    # x = layers.Dense(5, activation="linear")(x)
     # Create the Keras model
     model = tf.keras.Model(inputs=input_layer, outputs=x)
 

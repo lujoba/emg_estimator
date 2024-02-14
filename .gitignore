@@ -1,0 +1,21 @@
+# Ignora todos os arquivos na pasta data
+data/
+
+# Ignora todos os arquivos e subpastas na pasta logs
+logs/
+
+# Ignora todos os arquivos e subpastas na pasta papers
+papers/
+
+# Ignora arquivos temporários
+*.tmp
+
+# Ignora arquivos de backup
+*~
+
+# Ignora arquivos específicos do macOS
+.DS_Store
+__pycache__
+.ipynb_checkpoints
+Pipfile
+Pipefile.lock

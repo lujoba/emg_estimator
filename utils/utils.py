@@ -1,6 +1,7 @@
 # Important functions
 #todo convert to tf
 import numpy as np
+import yaml
 import tensorflow as tf
 import tensorflow_probability as tfp
 from scipy.signal import correlate2d
@@ -102,4 +103,52 @@ def make_plot(prediction_data, real_data, title):
     plt.tight_layout()
     plt.legend()
     plt.show()
-    
+
+def mse_activation_only(y_true, y_pred):
+    if y_true is None or y_pred is None:
+        raise ValueError("Os dados de entrada não podem ser None.")
+
+    if y_true.shape[0] == 0 or y_pred.shape[0] == 0:
+        raise ValueError("Os dados de entrada não podem ter comprimento zero.")
+
+    num_channels = y_true.shape[1]
+    if num_channels == 0:
+        raise ValueError("O número de canais não pode ser zero.")
+
+    signal_length = y_true.shape[0]
+    if signal_length % num_channels != 0:
+        raise ValueError("O comprimento do sinal deve ser um múltiplo do número de canais.")
+
+    interval_size = signal_length // num_channels
+    mse_per_channel = []
+
+    for i in range(num_channels):
+        start_index = i * interval_size
+        end_index = min((i + 1) * interval_size, signal_length)
+
+        mse_channel = np.mean((y_true[start_index:end_index, i] - y_pred[start_index:end_index, i])**2)
+        mse_per_channel.append(mse_channel)
+
+    return np.mean(mse_per_channel)
+
+def load_config(config_file: str) -> dict:
+    """
+    Loads a configuration dictionary from a YAML file.
+
+    Args:
+        config_file (str): Path to the YAML configuration file.
+
+    Returns:
+        dict: The loaded configuration dictionary.
+
+    Raises:
+        IOError: If the file cannot be opened or read.
+        YAMLError: If the YAML file is invalid.
+    """
+
+    with open(config_file, "r") as f:
+        try:
+            config = yaml.safe_load(f)
+        except yaml.YAMLError as exc:
+            raise ValueError(f"Error parsing YAML file: {exc}") from exc
+    return config
