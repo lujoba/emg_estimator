@@ -4,7 +4,7 @@ import tensorflow as tf
 # Definindo os callbacks para salvar o modelo e o TensorBoard
 def get_callbacks(model_name, subject_index):
     model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-        filepath=f"logs/model_1DoF_checkpoint/{model_name}/na_all_fingers/subject_{subject_index}/",
+        filepath=f"logs/models/{model_name}/na_all_fingers/subject_{subject_index}/",
         monitor="val_loss",
         verbose=1,
         save_best_only=True,
@@ -14,7 +14,7 @@ def get_callbacks(model_name, subject_index):
     )
 
     tensorboard_callback = tf.keras.callbacks.TensorBoard(
-        log_dir=f'logs/model_1DoF_tensorboard/{model_name}/na_all_fingers/subject_{subject_index}/',
+        log_dir=f'logs/models/{model_name}/na_all_fingers/subject_{subject_index}/',
         histogram_freq=1,
         write_graph=True,
         write_images=False,

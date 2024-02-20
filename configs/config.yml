@@ -10,27 +10,27 @@ batch_size: 128
 epoch: 200
 
 # Specific model params
-dense:
-  - input_shape: [100, 256]
-  - output_shape: 5
-  - num_layers: 3
+model_params:
+  dense:
+    - input_shape: [100, 256]
+    - output_shape: 128
+    - num_layers: 3
 
-resnet18_2D:
-  - WINDOW_SIZE: 100
-  - SENSORS_NUMBER: 256
-  - num_lstm_blocks: 1
-  - num_channels: 1
-  - output_dim: 5
+  resnet18_2d:
+    - WINDOW_SIZE: 100
+    - SENSORS_NUMBER: 256
+    - num_lstm_blocks: 1
+    - output_dim: 128
 
-resnet18_3D:
-  - WINDOW_SIZE: 100
-  - HEIGHT: 16
-  - WIDTH: 16
-  - num_lstm_blocks: 1
-  - num_channels: 1
-  - output_dim: 5
+  resnet18_3d:
+    - WINDOW_SIZE: 100
+    - HEIGHT: 16
+    - WIDTH: 16
+    - num_lstm_blocks: 1
+    - num_channels: 1
+    - output_dim: 5
 
-transformers:
-  - sequence_length: 100
-  - embed_dim: 256
-  - num_channels: 1
+  transformers:
+    - sequence_length: 100
+    - embed_dim: 256
+    - num_channels: 1
