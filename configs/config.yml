@@ -14,13 +14,14 @@ model_params:
   dense:
     - input_shape: [100, 256]
     - output_shape: 128
-    - num_layers: 3
+    - num_layers: 8
 
   resnet18_2d:
     - WINDOW_SIZE: 100
     - SENSORS_NUMBER: 256
     - num_lstm_blocks: 1
     - output_dim: 128
+    - complex: False
 
   resnet18_3d:
     - WINDOW_SIZE: 100
@@ -33,4 +34,10 @@ model_params:
   transformers:
     - sequence_length: 100
     - embed_dim: 256
-    - num_channels: 1
+    - num_channels: 2
+    - complex: False
+
+  nmf:
+    - input_shape: [100, 256]
+    - num_components: 256
+    - output_shape: 128

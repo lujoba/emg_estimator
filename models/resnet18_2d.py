@@ -101,7 +101,7 @@ class ResizeSignal(keras.layers.Layer):
         resized_signal = tf.image.resize(signal, (self.height, self.width))
         return resized_signal
 
-def build_model(WINDOW_SIZE, SENSORS_NUMBER, num_lstm_blocks, output_dim):
+def build_model(WINDOW_SIZE, SENSORS_NUMBER, output_dim):
     input_shape = (None, WINDOW_SIZE, SENSORS_NUMBER, 1)
     input = layers.Input(shape=(input_shape[1:]))
     x = input
@@ -127,16 +127,10 @@ def build_model(WINDOW_SIZE, SENSORS_NUMBER, num_lstm_blocks, output_dim):
     # Features Block
     x = layers.GlobalAveragePooling2D()(x)
     x = layers.Flatten()(x)
-    # LSTM Block
-    for _ in range(num_lstm_blocks):
-        x = tf.expand_dims(x, -1)
-        x = layers.LSTM(128)(x)
-    featuers = x
     ######################################################
     # Linear Combinator
     ######################################################
-    features = layers.Dense(128)(x)
-    x = layers.Dense(output_dim)(features)
+    x = layers.Dense(128)(x)
     ######################################################
     # Model Building
     ######################################################

@@ -10,6 +10,7 @@ from sklearn.metrics import r2_score
 from matplotlib import pyplot as plt
 
 
+# TODO what I really use 
 def normalize(tensor, target_min, target_max):
     tensor = tf.cast(tensor, tf.float32)
     target_min = tf.cast(target_min, tf.float32)
@@ -104,33 +105,8 @@ def make_plot(prediction_data, real_data, title):
     plt.legend()
     plt.show()
 
-def mse_activation_only(y_true, y_pred):
-    if y_true is None or y_pred is None:
-        raise ValueError("Os dados de entrada não podem ser None.")
-
-    if y_true.shape[0] == 0 or y_pred.shape[0] == 0:
-        raise ValueError("Os dados de entrada não podem ter comprimento zero.")
-
-    num_channels = y_true.shape[1]
-    if num_channels == 0:
-        raise ValueError("O número de canais não pode ser zero.")
-
-    signal_length = y_true.shape[0]
-    if signal_length % num_channels != 0:
-        raise ValueError("O comprimento do sinal deve ser um múltiplo do número de canais.")
-
-    interval_size = signal_length // num_channels
-    mse_per_channel = []
-
-    for i in range(num_channels):
-        start_index = i * interval_size
-        end_index = min((i + 1) * interval_size, signal_length)
-
-        mse_channel = np.mean((y_true[start_index:end_index, i] - y_pred[start_index:end_index, i])**2)
-        mse_per_channel.append(mse_channel)
-
-    return np.mean(mse_per_channel)
-
+#--- Novas Funções ---#
+# Training
 def load_config(config_file: str) -> dict:
     """
     Loads a configuration dictionary from a YAML file.
@@ -152,3 +128,80 @@ def load_config(config_file: str) -> dict:
         except yaml.YAMLError as exc:
             raise ValueError(f"Error parsing YAML file: {exc}") from exc
     return config
+
+def fft_tensor(input_tensor):
+    # Assume que input_tensor tem o formato [batch_size, height, width, num_channels]
+
+    # Aplicar a FFT ao longo dos eixos height e width (últimos dois eixos)
+    fft_result = tf.signal.fft2d(input_tensor)
+
+    # Dividir o resultado da FFT em parte real e imaginária
+    real_part = tf.math.real(fft_result)
+    imag_part = tf.math.imag(fft_result)
+
+    # Criar um novo tensor combinando as partes real e imaginária
+    complex_tensor = tf.stack([real_part, imag_part], axis=-1)
+
+    return complex_tensor
+
+def sse(y_true, y_pred):
+    return tf.reduce_sum(tf.square(y_true - y_pred))
+
+def loss(signal, estimate):
+    # Calcula a potência do sinal
+    power = tf.reduce_sum(tf.square(signal), axis=1)
+
+    # Pondera a função de perda de acordo com a potência
+    weighted_loss = 100 * power * tf.keras.losses.mse(estimate, signal)
+
+    return weighted_loss
+
+# Validation
+def mse_per_channel_slice(y_true, y_pred, slice_size):
+    """
+    Mean squared error (MSE) per channel for a specified slice.
+
+    Args:
+        y_true: True labels (shape: [batch_size, num_channels]).
+        y_pred: Predicted labels (shape: [batch_size, num_channels]).
+        slice_size: Size of the slice for each channel.
+
+    Returns:
+        MSE per channel for the specified slice (shape: [num_channels]).
+    """
+    # Slice the true and predicted labels for each channel
+    y_true_slices = [y_true[:, i][slice_size*i:slice_size*(i+1)] for i in range(y_true.shape[1])]
+    y_pred_slices = [y_pred[:, i][slice_size*i:slice_size*(i+1)] for i in range(y_pred.shape[1])]
+
+    # Calculate MSE for each channel slice
+    mse_per_channel = np.array([np.mean((true - pred)**2) for true, pred in zip(y_true_slices, y_pred_slices)])
+    return mse_per_channel
+
+def load_model_from_checkpoint(model, model_name, subject_number):
+    # Define the directory path for the checkpoint
+    checkpoint_dir = f"../logs/models/{model_name}/na_all_fingers/subject_{subject_number}/"
+
+    # Create a tf.train.Checkpoint object with the model
+    checkpoint = tf.train.Checkpoint(model=model)
+
+    # Restore the saved values in the model from the checkpoint files
+    status = checkpoint.restore(checkpoint_dir).expect_partial()
+
+    # Check if the restoration was successful
+    if tf.train.latest_checkpoint(checkpoint_dir) is None:
+        print(f"Checkpoint for subject {subject_number} not found or failed to restore.")
+    else:
+        print(f"Checkpoint for subject {subject_number} restored successfully.")
+
+    return status
+
+def butter_lowpass(cutoff, fs, order=4):
+    nyq = 0.5 * fs
+    normal_cutoff = cutoff / nyq
+    b, a = butter(order, normal_cutoff, btype='low', analog=False)
+    return b, a
+
+def butter_lowpass_filter(data, cutoff, fs, order=4):
+    b, a = butter_lowpass(cutoff, fs, order=order)
+    y = filtfilt(b, a, data, axis=0)
+    return y

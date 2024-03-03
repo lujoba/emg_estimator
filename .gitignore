@@ -19,3 +19,4 @@ __pycache__
 .ipynb_checkpoints
 Pipfile
 Pipefile.lock
+train_.py
