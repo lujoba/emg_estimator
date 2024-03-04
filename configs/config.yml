@@ -6,8 +6,9 @@ input_shape:
   - 100
   - 256
 output_shape: 5
-batch_size: 128
+batch_size: 32
 epoch: 200
+data_augment: True
 
 # Specific model params
 model_params:

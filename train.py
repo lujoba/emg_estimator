@@ -71,6 +71,7 @@ def training(args):
     INPUT_SHAPE_1 = config["input_shape"][1]
     OUTPUT_SHAPE = config["output_shape"]
     EPOCHS = config["epoch"]
+    DA = config["data_augment"]
 
     # Build the final model
     inputs = tf.keras.layers.Input(shape=(INPUT_SHAPE_0, INPUT_SHAPE_1))
@@ -82,7 +83,10 @@ def training(args):
     print(model.summary())
 
     # Base folder for the model logs
-    base_dir = f"logs/models/{args.model}/na_all_fingers/"
+    if DA:
+        base_dir = f"logs/models/{args.model}/wa_all_fingers/"
+    else:
+        base_dir = f"logs/models/{args.model}/na_all_fingers/"
 
     # Check if the base directory exists and is a directory
     if not os.path.exists(base_dir):
@@ -121,6 +125,20 @@ def training(args):
                 print("Starting processing for the next subject number:", i + 1)
                 # Defines the complete model
                 model = tf.keras.Model(inputs, outputs)
+                if DA:
+                    pi = tf.constant(3.141592653589793)
+                    data_augmentation = tf.keras.Sequential([
+                        tf.keras.layers.GaussianNoise(stddev=0.02),
+                        AmplitudeScalingLayer(scale_range=(0.8, 1.2)),
+                        TimeShiftLayer(max_shift=0.2),
+                        PhaseRotationLayer(rotation_range=(-pi/9, pi/9)),
+                        tf.keras.layers.Dropout(0.2),
+                    ])
+                    
+                    model = tf.keras.Sequential([
+                        data_augmentation,
+                        model,
+                    ])
                 # Compile the model
                 optimizer = keras.optimizers.Adam(learning_rate=1e-3)
                 model.compile(optimizer=optimizer, loss="mse", metrics=["mae"])

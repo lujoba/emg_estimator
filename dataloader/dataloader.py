@@ -60,10 +60,9 @@ def force_data(path, force_file):
         if name in force_file:
             force_signal = wfdb.rdsamp(os.path.join(path, force_file[:-4]))[0]
             force_signal = force_signal[5:]
-            ######################################################
             # Filter the high frequencies
-            ######################################################
             force_signal = butter_lowpass_filter(force_signal, cutoff, fs, order=4)
+            force_signal = tf.cast(force_signal, dtype=tf.float16)
             return force_signal
 
 def create_synced_datasets(path, emg_files, force_files, window_size=100):
@@ -71,7 +70,7 @@ def create_synced_datasets(path, emg_files, force_files, window_size=100):
     weights_dataset = []
     for emg_file, force_file in zip(emg_files, force_files):
         emg_signal = wfdb.rdsamp(os.path.join(path, emg_file[:-4]))[0]
-        emg_signal = tf.cast(emg_signal, dtype=tf.float32)
+        emg_signal = tf.cast(emg_signal, dtype=tf.float16)
         force_signal = force_data(path, force_file)
         finger_dataset = synced_windows(emg_signal, force_signal)
         datasets.append(finger_dataset)
