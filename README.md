@@ -31,8 +31,12 @@ A functions collection, created in my Ph.D. research, to estimate the muscle for
     ```
     python train.py -m model_name -c config_file_path
     ```
-4. Cite me;
-5. Have fun.
+4. Dataset:
+    ```
+    wget -r -N -c -np https://physionet.org/files/hd-semg/1.0.0/
+    ```
+5. Cite me;
+6. Have fun.
 
 ## To Do
 
