@@ -14,7 +14,7 @@ input_shape:
 shift:
   - 1
 output_shape: 5
-batch_size: 128
+batch_size: 8000
 epoch: 200
 data_augment: True
 
