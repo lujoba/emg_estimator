@@ -1,4 +1,3 @@
-import einops
 import tensorflow as tf
 import keras
 from keras import layers
@@ -101,8 +100,8 @@ class ResizeSignal(keras.layers.Layer):
         resized_signal = tf.image.resize(signal, (self.height, self.width))
         return resized_signal
 
-def build_model(WINDOW_SIZE, SENSORS_NUMBER, output_dim):
-    input_shape = (None, WINDOW_SIZE, SENSORS_NUMBER, 1)
+def build_model(sequence_length=100, embed_dim=256):
+    input_shape = (None, sequence_length, embed_dim, 1)
     input = layers.Input(shape=(input_shape[1:]))
     x = input
     ######################################################
@@ -111,16 +110,16 @@ def build_model(WINDOW_SIZE, SENSORS_NUMBER, output_dim):
     x = Conv2Plus1D(filters=16, kernel_size=(3, 7), padding='same')(x)
     x = layers.BatchNormalization()(x)
     x = layers.ReLU()(x)
-    x = ResizeSignal(-(SENSORS_NUMBER // -2), WINDOW_SIZE // 2)(x)
+    x = ResizeSignal(-(embed_dim // -2), sequence_length // 2)(x)
     # Block 1
     x = add_residual_block(x, 16, (3, 3))
-    x = ResizeSignal(-(SENSORS_NUMBER // -4), WINDOW_SIZE // 4)(x)
+    x = ResizeSignal(-(embed_dim // -4), sequence_length // 4)(x)
     # Block 2
     x = add_residual_block(x, 32, (3, 3))
-    x = ResizeSignal(-(SENSORS_NUMBER // -8), WINDOW_SIZE // 8)(x)
+    x = ResizeSignal(-(embed_dim // -8), sequence_length // 8)(x)
     # Block 3
     x = add_residual_block(x, 64, (3, 3))
-    x = ResizeSignal(-(SENSORS_NUMBER // -16), WINDOW_SIZE // 16)(x)
+    x = ResizeSignal(-(embed_dim // -16), sequence_length // 16)(x)
     # Block 4
     x = add_residual_block(x, 128, (3, 3))
 

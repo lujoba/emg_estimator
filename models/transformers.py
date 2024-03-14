@@ -2,6 +2,7 @@ import tensorflow as tf
 import complexnn
 import keras
 from keras import layers
+from utils.utils import fft_tensor
 
 def scaled_dot_product_attention(q, k, v, mask):
     matmul_qk = tf.linalg.matmul(q, k, transpose_b=True)
@@ -180,7 +181,18 @@ def build_model(sequence_length=100, embed_dim=256, num_channels=1, complex=Fals
     num_heads = 2
 
     inputs = keras.Input(shape=(None, None))
-    x = layers.Reshape((sequence_length, embed_dim * num_channels))(inputs)
+    x = inputs
+
+    if num_channels == 2:
+        reshape = tf.keras.layers.Reshape((sequence_length, embed_dim, 1))
+        x = reshape(x)
+        x = tf.cast(
+            x, dtype=tf.complex64, name=None
+        )
+        # Separate the complex and the real part in two different channels
+        x = fft_tensor(x)
+
+    x = layers.Reshape((sequence_length, embed_dim * num_channels))(x)
     x = PositionalEmbedding(
         sequence_length,
         embed_dim * num_channels,

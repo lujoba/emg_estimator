@@ -23,11 +23,13 @@ A functions collection, created in my Ph.D. research, to estimate the muscle for
 1. Check out the code;
 2. Install requirements:
     ```
-    pipenv install
+    python -m venv emg_estimation
+    source emg_estimation/bin/activate
+    pip install - r requirements.txt
     ```
 3. Use as CLI, as the example below, or call the class in your project:
     ```
-    pipenv run train.py -data data_path
+    python train.py -m model_name -c config_file_path
     ```
 4. Cite me;
 5. Have fun.

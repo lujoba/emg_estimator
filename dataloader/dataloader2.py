@@ -41,6 +41,10 @@ def force_data(path, force_file):
             force_signal = force_signal[5:]
             # Filter the high frequencies
             force_signal = butter_lowpass_filter(force_signal, cutoff, fs, order=4)
+            # Normalize by dividing by the maximum absolute value
+            max_abs_value = np.max(np.abs(force_signal))
+            force_signal /= max_abs_value
+            force_signal = tf.cast(force_signal, dtype=tf.float16)
             return force_signal
 
 def interpolate_force_to_emg(force_signal, emg_signal):
@@ -97,7 +101,7 @@ def synced_windows(emg_signal, force_signal, window_size=100, shift=1):
     dataset = tf.data.Dataset.zip((emg_windows, force_windows))
     return dataset
 
-def create_synced_datasets(path, emg_files, force_files, window_size=100, stride=1):
+def create_synced_datasets(path, emg_files, force_files, window_size=100,  electrodes=256, shift=1):
     """
     Creates a TensorFlow dataset by loading, processing, and combining synchronized EMG and force signals from multiple files.
     
@@ -112,26 +116,30 @@ def create_synced_datasets(path, emg_files, force_files, window_size=100, stride
         A TensorFlow dataset containing synchronized windows of EMG and force signals from all the files.
     """
     datasets = []
-
-    # if not isinstance(emg_files, list):
-    #     emg_files = [emg_files]
-    # if not isinstance(force_files, list):
-    #     force_files = [force_files]
-
-    path = str(path)[2:-1]
-    emg_files = [str(byte_string)[2:-1] for byte_string in emg_files]
-    force_files = [str(byte_string)[2:-1] for byte_string in force_files]
-
     for emg_file, force_file in zip(emg_files, force_files):
         # Load EMG and force signals
         emg_signal = wfdb.rdsamp(os.path.join(path, emg_file[:-4]))[0]
-        emg_signal = tf.cast(emg_signal, dtype=tf.float32)
+        emg_signal = tf.cast(emg_signal, dtype=tf.float16)
+
+        # Pré-processing the signal
+        if electrodes == 128:
+            emg_signal =  electrode_selection(emg_signal)
+        elif electrodes == 112:
+            num_chunks = 2
+            emg_signal = calculate_differential_matrices(
+                electrode_selection(emg_signal), num_chunks
+                )
+        elif electrodes == 224:
+            num_chunks = 4
+            emg_signal = calculate_differential_matrices(
+                emg_signal, num_chunks
+            )
 
         force_signal = force_data(path, force_file)
         force_signal = interpolate_force_to_emg(force_signal, emg_signal)
 
         # Create the dataset for the finguers
-        finger_dataset = synced_windows(emg_signal, force_signal)
+        finger_dataset = synced_windows(emg_signal, force_signal, window_size=window_size, shift=shift)
         # Apply preprocessing to force signals
         finger_dataset = finger_dataset.map(lambda x, y: (x, preprocess_force(y)))
 
@@ -142,7 +150,7 @@ def create_synced_datasets(path, emg_files, force_files, window_size=100, stride
         dataset = dataset.concatenate(datasets[i])
     return dataset
 
-def create_synced_datasets_generator(paths, emg_files_list, force_files_list, window_size=100):
+def create_synced_datasets_generator(paths, emg_files_list, force_files_list, window_size=100, electrodes=256):
     """
     Yields datasets generated from processing multiple data files in a generator fashion.
 
@@ -157,7 +165,7 @@ def create_synced_datasets_generator(paths, emg_files_list, force_files_list, wi
     """
     for path in paths:
         for emg_file, force_file in zip(emg_files_list, force_files_list):
-            yield from create_synced_datasets(path, emg_file, force_file, window_size=window_size)
+            yield from create_synced_datasets(path, emg_file, force_file, window_size=window_size, electrodes=electrodes)
 
 def preprocess_force(force):
     """
@@ -172,16 +180,66 @@ def preprocess_force(force):
     force = tf.squeeze(force, axis=0)
     return force
 
-def generate_dataset(paths, emg_paths, force_paths):
+def calculate_differential_matrices(input_array, num_chunks):
     """
-    Generates a dataset using a synchronized generator.
-
+    Calculates differential matrices for each sample in a 1D TensorFlow tensor.
     Args:
-        paths: A list (or other iterable) of paths to data files.
-        emg_paths: A list (or other iterable) of paths to EMG data files.
-        force_paths: A list (or other iterable) of paths to force data files.
-
+        input_array: A 2D TensorFlow tensor with shape [num_samples, 256].
+        num_chunks: The number of chunks to divide each sample into.
     Returns:
-        A generator that yields synchronized EMG and force data pairs.
+        A 3D TensorFlow tensor with shape [num_samples, num_chunks, 7].
+        Contains differential matrices for each sample and chunk.
+    Raises:
+        ValueError: If the sample length (256) is not divisible by num_chunks * 8.
     """
-    return create_synced_datasets_generator(paths, emg_paths, force_paths)
+    
+    # Check if sample length is divisible by required amount
+    if 256 % (num_chunks * 8) != 0:
+        raise ValueError("Sample length must be divisible by num_chunks * 8")
+    # Iterate over each sample in the input tensor
+    differential_matrices = []
+    for sample in input_array:
+        # Split the sample into chunks of appropriate size
+        chunk_length = len(sample) // num_chunks
+        chunks = tf.split(sample, num_or_size_splits=len(sample) // chunk_length)
+        # Reshape each chunk into a matrix of size 8x8
+        matrices = [tf.reshape(chunk, (8, 8)) for chunk in chunks]
+        # Apply the differential matrix operation to each matrix
+        sample_diff_matrices = []
+        for matrix in matrices:
+            differential_matrix = matrix[1:, :] - matrix[:-1, :]
+            sample_diff_matrices.append(differential_matrix)
+        # Concatenate the differential matrices for this sample
+        sample_result = tf.concat(sample_diff_matrices, axis=0)
+        # Add the sample's differential matrices to the result list
+        differential_matrices.append(sample_result)
+    
+    # Combine differential matrices for all samples into a single tensor
+    result = tf.stack(differential_matrices, axis=0)
+    # Reshape the combined tensor into a 2D array
+    return tf.reshape(result, (tf.shape(result)[0], -1))
+
+def electrode_selection(emg_signal):
+    """
+    Selects a subset of electrodes from an EMG signal.
+    Args:
+        emg_signal: A 2D TensorFlow tensor representing the EMG signal, with
+        shape (num_electrodes, time_steps).
+    Returns:
+        A 2D TensorFlow tensor representing the selected EMG signal, with shape
+        (64, time_steps), containing channels from electrodes 64 to 127 and
+        192 to 255 (inclusive).
+    Raises:
+        ValueError: If the input `emg_signal` does not have a rank of 2.
+    """
+    
+    # Check if input has the expected rank
+    if len(emg_signal.shape) != 2:
+        raise ValueError("Input emg_signal must have a rank of 2.")
+    # Create a tensor of indices for the desired electrodes
+    indices = tf.concat([tf.range(64, 128), tf.range(192, 256)], axis=0)
+    # Select the desired electrodes using tf.gather
+    emg_signal = tf.gather(emg_signal, indices, axis=1)
+    # Cast the selected signal to float16 for consistency
+    emg_signal = tf.cast(emg_signal, dtype=tf.float16)
+    return emg_signal

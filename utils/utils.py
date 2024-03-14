@@ -145,7 +145,9 @@ def fft_tensor(input_tensor):
     return complex_tensor
 
 def sse(y_true, y_pred):
-    return tf.reduce_sum(tf.square(y_true - y_pred))
+    return tf.reduce_sum(
+        tf.square(y_true - y_pred)
+    )
 
 def loss(signal, estimate):
     # Calcula a potência do sinal

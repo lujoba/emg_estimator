@@ -65,14 +65,29 @@ def force_data(path, force_file):
             force_signal = tf.cast(force_signal, dtype=tf.float16)
             return force_signal
 
-def create_synced_datasets(path, emg_files, force_files, window_size=100):
+def create_synced_datasets(path, emg_files, force_files, window_size=100, electrodes=256):
     datasets = []
     weights_dataset = []
     for emg_file, force_file in zip(emg_files, force_files):
         emg_signal = wfdb.rdsamp(os.path.join(path, emg_file[:-4]))[0]
         emg_signal = tf.cast(emg_signal, dtype=tf.float16)
+
+        # Pré-processing the signal
+        if electrodes == 128:
+            emg_signal =  electrode_selection(emg_signal)
+        elif electrodes == 112:
+            num_chunks = 2
+            emg_signal = calculate_differential_matrices(
+                electrode_selection(emg_signal), num_chunks
+                )
+        elif electrodes == 224:
+            num_chunks = 4
+            emg_signal = calculate_differential_matrices(
+                emg_signal, num_chunks
+            )
+
         force_signal = force_data(path, force_file)
-        finger_dataset = synced_windows(emg_signal, force_signal)
+        finger_dataset = synced_windows(emg_signal, force_signal, window_size=window_size)
         datasets.append(finger_dataset)
 
     dataset = datasets[0]
@@ -81,7 +96,71 @@ def create_synced_datasets(path, emg_files, force_files, window_size=100):
     return dataset
 
 # @tf.function
-def create_synced_datasets_generator(paths, emg_files_list, force_files_list, window_size=100):
+def create_synced_datasets_generator(paths, emg_files_list, force_files_list, window_size=100, electrodes=256):
     for path in paths:
         for emg_file, force_file in zip(emg_files_list, force_files_list):
-            yield from create_synced_datasets(path, emg_file, force_file, window_size=window_size)
+            yield from create_synced_datasets(path, emg_file, force_file, window_size=window_size, electrodes=electrodes)
+
+def calculate_differential_matrices(input_array, num_chunks):
+    """
+    Calculates differential matrices for each sample in a 1D TensorFlow tensor.
+    Args:
+        input_array: A 2D TensorFlow tensor with shape [num_samples, 256].
+        num_chunks: The number of chunks to divide each sample into.
+    Returns:
+        A 3D TensorFlow tensor with shape [num_samples, num_chunks, 7].
+        Contains differential matrices for each sample and chunk.
+    Raises:
+        ValueError: If the sample length (256) is not divisible by num_chunks * 8.
+    """
+    
+    # Check if sample length is divisible by required amount
+    if 256 % (num_chunks * 8) != 0:
+        raise ValueError("Sample length must be divisible by num_chunks * 8")
+    # Iterate over each sample in the input tensor
+    differential_matrices = []
+    for sample in input_array:
+        # Split the sample into chunks of appropriate size
+        chunk_length = len(sample) // num_chunks
+        chunks = tf.split(sample, num_or_size_splits=len(sample) // chunk_length)
+        # Reshape each chunk into a matrix of size 8x8
+        matrices = [tf.reshape(chunk, (8, 8)) for chunk in chunks]
+        # Apply the differential matrix operation to each matrix
+        sample_diff_matrices = []
+        for matrix in matrices:
+            differential_matrix = matrix[1:, :] - matrix[:-1, :]
+            sample_diff_matrices.append(differential_matrix)
+        # Concatenate the differential matrices for this sample
+        sample_result = tf.concat(sample_diff_matrices, axis=0)
+        # Add the sample's differential matrices to the result list
+        differential_matrices.append(sample_result)
+    
+    # Combine differential matrices for all samples into a single tensor
+    result = tf.stack(differential_matrices, axis=0)
+    # Reshape the combined tensor into a 2D array
+    return tf.reshape(result, (tf.shape(result)[0], -1))
+
+def electrode_selection(emg_signal):
+    """
+    Selects a subset of electrodes from an EMG signal.
+    Args:
+        emg_signal: A 2D TensorFlow tensor representing the EMG signal, with
+        shape (num_electrodes, time_steps).
+    Returns:
+        A 2D TensorFlow tensor representing the selected EMG signal, with shape
+        (64, time_steps), containing channels from electrodes 64 to 127 and
+        192 to 255 (inclusive).
+    Raises:
+        ValueError: If the input `emg_signal` does not have a rank of 2.
+    """
+    
+    # Check if input has the expected rank
+    if len(emg_signal.shape) != 2:
+        raise ValueError("Input emg_signal must have a rank of 2.")
+    # Create a tensor of indices for the desired electrodes
+    indices = tf.concat([tf.range(64, 128), tf.range(192, 256)], axis=0)
+    # Select the desired electrodes using tf.gather
+    emg_signal = tf.gather(emg_signal, indices, axis=1)
+    # Cast the selected signal to float16 for consistency
+    emg_signal = tf.cast(emg_signal, dtype=tf.float16)
+    return emg_signal

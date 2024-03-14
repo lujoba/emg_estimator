@@ -34,7 +34,7 @@ def get_callbacks(model_name, subject_index, DA=False):
         monitor="val_loss",
         verbose=1,
         save_best_only=True,
-        save_weights_only=False,
+        save_weights_only=True,
         mode="min",
         save_format="tf"
     )

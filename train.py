@@ -7,7 +7,7 @@ import argparse
 from utils.utils import *
 from utils.data_lists import *
 from utils.callbacks import get_callbacks
-from dataloader.dataloader import *
+from dataloader.dataloader2 import *
 from models.data_augmentation import *
 from models.deep_lstm import build_model
 
@@ -61,10 +61,7 @@ def training(args):
 
         # Add session paths to the list
         subjects.append([session1_path, session2_path])
-    # Build the model base architecture
-    backbone_model = model_module.build_model(**model_params_dict)
-    estimator_model = build_model(embed_dim=256)
-    
+
     #Parameters
     BATCH_SIZE = config["batch_size"]
     INPUT_SHAPE_0 = config["input_shape"][0]
@@ -72,6 +69,10 @@ def training(args):
     OUTPUT_SHAPE = config["output_shape"]
     EPOCHS = config["epoch"]
     DA = config["data_augment"]
+
+    # Build the model base architecture
+    backbone_model = model_module.build_model(sequence_length=INPUT_SHAPE_0, embed_dim=INPUT_SHAPE_1, **model_params_dict)
+    estimator_model = build_model(embed_dim=INPUT_SHAPE_1)
 
     # Build the final model
     inputs = tf.keras.layers.Input(shape=(INPUT_SHAPE_0, INPUT_SHAPE_1))
@@ -141,7 +142,8 @@ def training(args):
                     ])
                 # Compile the model
                 optimizer = keras.optimizers.Adam(learning_rate=1e-3)
-                model.compile(optimizer=optimizer, loss="mse", metrics=["mae"])
+                model.compile(optimizer=optimizer, loss=loss, metrics=['mse', 'mae'])
+
                 # Creat a path for the dataset
                 path1 = [subjects[i][0]]
                 path2 = [subjects[i][1]]
@@ -151,16 +153,17 @@ def training(args):
                 train_dataset = (
                     tf.data.Dataset.from_generator(
                         lambda: create_synced_datasets_generator(
-                            path1, emg_tr_files_lists, force_tr_files_lists
+                            path1, emg_tr_files_lists, force_tr_files_lists,
+                            INPUT_SHAPE_0, INPUT_SHAPE_1
                         ),
                         output_signature=(
                             tf.TensorSpec(
-                                shape=(INPUT_SHAPE_0, INPUT_SHAPE_1), dtype=tf.float32
+                                shape=(INPUT_SHAPE_0, INPUT_SHAPE_1), dtype=tf.float16
                             ),
-                            tf.TensorSpec(shape=(OUTPUT_SHAPE,), dtype=tf.float32),
+                            tf.TensorSpec(shape=(OUTPUT_SHAPE,), dtype=tf.float16),
                         ),
                     )
-                    .shuffle(buffer_size=BATCH_SIZE)
+                    .shuffle(buffer_size=10000)
                     .batch(BATCH_SIZE)
                     .cache()
                     .prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
@@ -170,13 +173,14 @@ def training(args):
                 val_dataset = (
                     tf.data.Dataset.from_generator(
                         lambda: create_synced_datasets_generator(
-                            path2, emg_vl_files_lists, force_vl_files_lists
+                            path2, emg_vl_files_lists, force_vl_files_lists,
+                            INPUT_SHAPE_0, INPUT_SHAPE_1
                         ),
                         output_signature=(
                             tf.TensorSpec(
-                                shape=(INPUT_SHAPE_0, INPUT_SHAPE_1), dtype=tf.float32
+                                shape=(INPUT_SHAPE_0, INPUT_SHAPE_1), dtype=tf.float16
                             ),
-                            tf.TensorSpec(shape=(OUTPUT_SHAPE,), dtype=tf.float32),
+                            tf.TensorSpec(shape=(OUTPUT_SHAPE,), dtype=tf.float16),
                         ),
                     )
                     .batch(BATCH_SIZE)
@@ -188,16 +192,17 @@ def training(args):
                 test_dataset = (
                     tf.data.Dataset.from_generator(
                         lambda: create_synced_datasets_generator(
-                            path3, emg_te_files_lists, force_te_files_lists
+                            path3, emg_te_files_lists, force_te_files_lists,
+                            INPUT_SHAPE_0, INPUT_SHAPE_1
                         ),
                         output_signature=(
                             tf.TensorSpec(
-                                shape=(INPUT_SHAPE_0, INPUT_SHAPE_1), dtype=tf.float32
+                                shape=(INPUT_SHAPE_0, INPUT_SHAPE_1), dtype=tf.float16
                             ),
-                            tf.TensorSpec(shape=(OUTPUT_SHAPE,), dtype=tf.float32),
+                            tf.TensorSpec(shape=(OUTPUT_SHAPE,), dtype=tf.float16),
                         ),
                     )
-                    .batch(32)
+                    .batch(BATCH_SIZE)
                     .prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
                 )
 
