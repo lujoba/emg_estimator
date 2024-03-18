@@ -7,7 +7,7 @@ import argparse
 from utils.utils import *
 from utils.data_lists import *
 from utils.callbacks import get_callbacks
-from dataloader.dataloader2 import *
+from dataloader.dataloader import *
 from models.data_augmentation import *
 from models.deep_lstm import build_model
 
@@ -163,7 +163,7 @@ def training(args):
                             tf.TensorSpec(shape=(OUTPUT_SHAPE,), dtype=tf.float16),
                         ),
                     )
-                    .shuffle(buffer_size=10000)
+                    .shuffle(buffer_size=BATCH_SIZE * 5)
                     .batch(BATCH_SIZE)
                     .cache()
                     .prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
@@ -207,7 +207,7 @@ def training(args):
                 )
 
                 # Load callbacks
-                callbacks = get_callbacks(args.model, i + 1)
+                callbacks = get_callbacks(args.model, i + 1, DA)
 
                 # Fit data to model
                 model.fit(
@@ -216,9 +216,10 @@ def training(args):
                     validation_data=val_dataset,
                     callbacks=callbacks,
                 )
-                mse, mae = model.evaluate(test_dataset)
-                print("Test MSE:", mse)
-                print("Test MAE:", mae)
+                loss_, mse_, mae_ = model.evaluate(test_dataset)
+                print("Test LOSS:", loss_)
+                print("Test MSE:", mse_)
+                print("Test MAE:", mae_)
             else:
                 print(f"Index {i + 1} is out of range. Skipping processing for this subject.")
 

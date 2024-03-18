@@ -100,7 +100,7 @@ class ResizeSignal(keras.layers.Layer):
         resized_signal = tf.image.resize(signal, (self.height, self.width))
         return resized_signal
 
-def build_model(sequence_length=100, embed_dim=256):
+def build_model(sequence_length=100, embed_dim=256, complex=False):
     input_shape = (None, sequence_length, embed_dim, 1)
     input = layers.Input(shape=(input_shape[1:]))
     x = input
@@ -121,7 +121,7 @@ def build_model(sequence_length=100, embed_dim=256):
     x = add_residual_block(x, 64, (3, 3))
     x = ResizeSignal(-(embed_dim // -16), sequence_length // 16)(x)
     # Block 4
-    x = add_residual_block(x, 128, (3, 3))
+    x = add_residual_block(x, embed_dim, (3, 3))
 
     # Features Block
     x = layers.GlobalAveragePooling2D()(x)
@@ -129,7 +129,7 @@ def build_model(sequence_length=100, embed_dim=256):
     ######################################################
     # Linear Combinator
     ######################################################
-    x = layers.Dense(128)(x)
+    x = layers.Dense(embed_dim)(x)
     ######################################################
     # Model Building
     ######################################################
