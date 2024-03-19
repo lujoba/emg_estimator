@@ -42,8 +42,8 @@ def force_data(path, force_file):
             # Filter the high frequencies
             force_signal = butter_lowpass_filter(force_signal, cutoff, fs, order=4)
             # Normalize by dividing by the maximum absolute value
-            max_abs_value = np.max(np.abs(force_signal))
-            force_signal /= max_abs_value
+            max_abs_value = tf.reduce_max(tf.abs(force_signal))
+            force_signal = tf.divide(force_signal, max_abs_value)
             force_signal = tf.cast(force_signal, dtype=tf.float16)
             return force_signal
 

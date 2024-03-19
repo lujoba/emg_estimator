@@ -1,21 +1,8 @@
 import os
 import wfdb
 import tensorflow as tf
-from utils.utils import normalize
-from scipy import signal
+from utils.utils import butter_lowpass_filter
 
-from scipy.signal import butter, filtfilt, iirnotch
-
-def butter_lowpass(cutoff, fs, order=4):
-    nyq = 0.5 * fs
-    normal_cutoff = cutoff / nyq
-    b, a = butter(order, normal_cutoff, btype='low', analog=False)
-    return b, a
-
-def butter_lowpass_filter(data, cutoff, fs, order=4):
-    b, a = butter_lowpass(cutoff, fs, order=order)
-    y = filtfilt(b, a, data, axis=0)
-    return y
 
 def synced_windows(emg_signal, force_signal, window_size=100):
     emg_samples_per_force_sample = 2048 // 100
@@ -62,6 +49,9 @@ def force_data(path, force_file):
             force_signal = force_signal[5:]
             # Filter the high frequencies
             force_signal = butter_lowpass_filter(force_signal, cutoff, fs, order=4)
+            # Normalize by dividing by the maximum absolute value
+            max_abs_value = tf.reduce_max(tf.abs(force_signal))
+            force_signal = tf.divide(force_signal, max_abs_value) # force_signal /= max_abs_value
             force_signal = tf.cast(force_signal, dtype=tf.float16)
             return force_signal
 
