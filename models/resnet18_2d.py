@@ -1,28 +1,35 @@
 import tensorflow as tf
 import keras
 from keras import layers
+import complexnn
+from utils.utils import fft_tensor
 
 
-# class Conv2Plus1D(layers.Layer):
-#   def __init__(self, filters, kernel_size, padding):
-#     """
-#       A sequence of convolutional layers that first apply the convolution
-#       operation over the spatial dimensions, and then the temporal dimension. 
-#     """
-#     super().__init__()
-#     self.seq = keras.Sequential([  
-#         # Spatial decomposition
-#         layers.Conv2D(filters=filters,
-#                       kernel_size=(1, kernel_size[1]),
-#                       padding=padding),
-#         # Temporal decomposition
-#         layers.Conv2D(filters=filters, 
-#                       kernel_size=(kernel_size[0], 1),
-#                       padding=padding)
-#         ])
-# 
-#   def call(self, x):
-#     return self.seq(x)
+class Convolution2D(layers.Layer):
+  def __init__(self, filters, kernel_size, padding, complex=False):
+    """
+      A class to choose between a complex or normal 2D convolution. 
+    """
+    super().__init__()
+    if not complex:
+      self.seq = keras.Sequential([
+        layers.Conv2D(
+          filters=filters,
+          kernel_size=kernel_size,
+          padding=padding
+        )
+      ])
+    else:
+      self.seq = keras.Sequential([
+        complexnn.conv.ComplexConv2D(
+          filters=filters,
+          kernel_size=kernel_size,
+          padding=padding
+        )
+      ])
+
+  def call(self, x):
+    return self.seq(x)
 
 
 class ResidualMain(keras.layers.Layer):
@@ -30,17 +37,17 @@ class ResidualMain(keras.layers.Layer):
     Residual block of the model with convolution, layer normalization,
     and the activation function, ReLU.
   """
-  def __init__(self, filters, kernel_size):
+  def __init__(self, filters, kernel_size, complex=False):
     super().__init__()
     self.seq = keras.Sequential([
-        layers.Conv2D(filters=filters,
+        Convolution2D(filters=filters,
                     kernel_size=kernel_size,
-                    padding='same'), # Conv2Plus1D
+                    padding='same', complex=complex),
         layers.LayerNormalization(),
         layers.ReLU(),
-        layers.Conv2D(filters=filters, 
+        Convolution2D(filters=filters, 
                     kernel_size=kernel_size,
-                    padding='same'), # Conv2Plus1D
+                    padding='same', complex=complex),
         layers.LayerNormalization()
     ])
 
@@ -64,13 +71,16 @@ class Project(keras.layers.Layer):
     return self.seq(x)
 
 
-def add_residual_block(input, filters, kernel_size):
+def add_residual_block(input, filters, kernel_size, complex=False):
   """
     Add residual blocks to the model. If the last dimensions of the input data
     and filter size does not match, project it such that last dimension matches.
   """
-  out = ResidualMain(filters, 
-                     kernel_size)(input)
+  out = ResidualMain(
+    filters,
+    kernel_size,
+    complex=complex
+  )(input)
 
   res = input
   # Using the Keras functional APIs, project the last dimension of the tensor to
@@ -104,24 +114,32 @@ def build_model(sequence_length=100, embed_dim=256, complex=False):
     input_shape = (None, sequence_length, embed_dim, 1)
     input = layers.Input(shape=(input_shape[1:]))
     x = input
+    if complex:
+      reshape = tf.keras.layers.Reshape((sequence_length, embed_dim, 1))
+      x = reshape(x)
+      x = tf.cast(
+          x, dtype=tf.complex64, name=None
+      )
+      # Separate the complex and the real part in two different channels
+      x = fft_tensor(x)
     ######################################################
     # Feature extraction filter
     ######################################################
-    x = layers.Conv2D(filters=16, kernel_size=(3, 7), padding='same')(x) # Conv2Plus1D
+    x = Convolution2D(filters=16, kernel_size=(3, 7), padding='same', complex=complex)(x) # Conv2Plus1D
     x = layers.BatchNormalization()(x)
     x = layers.ReLU()(x)
     x = ResizeSignal(-(embed_dim // -2), sequence_length // 2)(x)
     # Block 1
-    x = add_residual_block(x, 16, (3, 3))
+    x = add_residual_block(x, 16, (3, 3), complex=complex)
     x = ResizeSignal(-(embed_dim // -4), sequence_length // 4)(x)
     # Block 2
-    x = add_residual_block(x, 32, (3, 3))
+    x = add_residual_block(x, 32, (3, 3), complex=complex)
     x = ResizeSignal(-(embed_dim // -8), sequence_length // 8)(x)
     # Block 3
-    x = add_residual_block(x, 64, (3, 3))
+    x = add_residual_block(x, 64, (3, 3), complex=complex)
     x = ResizeSignal(-(embed_dim // -16), sequence_length // 16)(x)
     # Block 4
-    x = add_residual_block(x, embed_dim, (3, 3))
+    x = add_residual_block(x, embed_dim, (3, 3), complex=complex)
 
     # Features Block
     x = layers.GlobalAveragePooling2D()(x)
