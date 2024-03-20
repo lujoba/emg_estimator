@@ -3,26 +3,26 @@ import keras
 from keras import layers
 
 
-class Conv2Plus1D(layers.Layer):
-  def __init__(self, filters, kernel_size, padding):
-    """
-      A sequence of convolutional layers that first apply the convolution
-      operation over the spatial dimensions, and then the temporal dimension. 
-    """
-    super().__init__()
-    self.seq = keras.Sequential([  
-        # Spatial decomposition
-        layers.Conv2D(filters=filters,
-                      kernel_size=(1, kernel_size[1]),
-                      padding=padding),
-        # Temporal decomposition
-        layers.Conv2D(filters=filters, 
-                      kernel_size=(kernel_size[0], 1),
-                      padding=padding)
-        ])
-
-  def call(self, x):
-    return self.seq(x)
+# class Conv2Plus1D(layers.Layer):
+#   def __init__(self, filters, kernel_size, padding):
+#     """
+#       A sequence of convolutional layers that first apply the convolution
+#       operation over the spatial dimensions, and then the temporal dimension. 
+#     """
+#     super().__init__()
+#     self.seq = keras.Sequential([  
+#         # Spatial decomposition
+#         layers.Conv2D(filters=filters,
+#                       kernel_size=(1, kernel_size[1]),
+#                       padding=padding),
+#         # Temporal decomposition
+#         layers.Conv2D(filters=filters, 
+#                       kernel_size=(kernel_size[0], 1),
+#                       padding=padding)
+#         ])
+# 
+#   def call(self, x):
+#     return self.seq(x)
 
 
 class ResidualMain(keras.layers.Layer):
@@ -33,14 +33,14 @@ class ResidualMain(keras.layers.Layer):
   def __init__(self, filters, kernel_size):
     super().__init__()
     self.seq = keras.Sequential([
-        Conv2Plus1D(filters=filters,
+        layers.Conv2D(filters=filters,
                     kernel_size=kernel_size,
-                    padding='same'),
+                    padding='same'), # Conv2Plus1D
         layers.LayerNormalization(),
         layers.ReLU(),
-        Conv2Plus1D(filters=filters, 
+        layers.Conv2D(filters=filters, 
                     kernel_size=kernel_size,
-                    padding='same'),
+                    padding='same'), # Conv2Plus1D
         layers.LayerNormalization()
     ])
 
@@ -107,7 +107,7 @@ def build_model(sequence_length=100, embed_dim=256, complex=False):
     ######################################################
     # Feature extraction filter
     ######################################################
-    x = Conv2Plus1D(filters=16, kernel_size=(3, 7), padding='same')(x)
+    x = layers.Conv2D(filters=16, kernel_size=(3, 7), padding='same')(x) # Conv2Plus1D
     x = layers.BatchNormalization()(x)
     x = layers.ReLU()(x)
     x = ResizeSignal(-(embed_dim // -2), sequence_length // 2)(x)
