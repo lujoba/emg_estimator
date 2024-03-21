@@ -10,11 +10,11 @@ dataset_path: data/1dof_dataset/
 # 256 (256 electrodes with monopolar arrangements)
 input_shape:
   - 100
-  - 112
+  - 256
 shift:
   - 1
 output_shape: 5
-batch_size: 256
+batch_size: 128
 epoch: 200
 data_augment: False
 

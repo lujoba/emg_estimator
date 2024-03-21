@@ -1,7 +1,7 @@
 import os
 import wfdb
 import tensorflow as tf
-from utils.utils import butter_lowpass_filter
+from utils.utils import butter_lowpass_filter, normalize
 
 
 def synced_windows(emg_signal, force_signal, window_size=100):
@@ -49,9 +49,10 @@ def force_data(path, force_file):
             force_signal = force_signal[5:]
             # Filter the high frequencies
             force_signal = butter_lowpass_filter(force_signal, cutoff, fs, order=4)
+            force_signal = normalize(force_signal, -1, 1)
             # Normalize by dividing by the maximum absolute value
-            max_abs_value = tf.reduce_max(tf.abs(force_signal))
-            force_signal = tf.divide(force_signal, max_abs_value) # force_signal /= max_abs_value
+            # max_abs_value = tf.reduce_max(tf.abs(force_signal))
+            # force_signal = tf.divide(force_signal, max_abs_value) # force_signal /= max_abs_value
             force_signal = tf.cast(force_signal, dtype=tf.float16)
             return force_signal
 
@@ -60,6 +61,7 @@ def create_synced_datasets(path, emg_files, force_files, window_size=100, electr
     weights_dataset = []
     for emg_file, force_file in zip(emg_files, force_files):
         emg_signal = wfdb.rdsamp(os.path.join(path, emg_file[:-4]))[0]
+        emg_signal = normalize(emg_signal, -1, 1)
         emg_signal = tf.cast(emg_signal, dtype=tf.float16)
 
         # Pré-processing the signal

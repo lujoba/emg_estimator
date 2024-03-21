@@ -142,7 +142,7 @@ def training(args):
                     ])
                 # Compile the model
                 optimizer = keras.optimizers.Adam(learning_rate=1e-3)
-                model.compile(optimizer=optimizer, loss=loss, metrics=['mse', 'mae'])
+                model.compile(optimizer=optimizer, loss=loss, metrics=['mse', 'mae', sse])
 
                 # Creat a path for the dataset
                 path1 = [subjects[i][0]]
@@ -216,10 +216,12 @@ def training(args):
                     validation_data=val_dataset,
                     callbacks=callbacks,
                 )
-                loss_, mse_, mae_ = model.evaluate(test_dataset)
-                print("Test LOSS:", loss_)
-                print("Test MSE:", mse_)
-                print("Test MAE:", mae_)
+                # loss_, mse_, mae_, sse_ = model.evaluate(test_dataset)
+                # print("Test LOSS:", loss_)
+                # print("Test MSE:", mse_)
+                # print("Test MAE:", mae_)
+                # print("Test SSE:", sse_)
+                break
             else:
                 print(f"Index {i + 1} is out of range. Skipping processing for this subject.")
 
