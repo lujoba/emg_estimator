@@ -8,11 +8,15 @@ dataset_path: data/1dof_dataset/
 # 128 (128 electrodes with monopolar arrangements),
 # 224 (256 electrodes with differential arrangements),
 # 256 (256 electrodes with monopolar arrangements)
+# Shift is the step of the moving window implementation
+# with a step of 20, the force will be approximately the
+# same size as the original force signal, without 
+# interpolation.
 input_shape:
   - 100
-  - 256
+  - 112
 shift:
-  - 1
+  - 10
 output_shape: 5
 batch_size: 128
 epoch: 200

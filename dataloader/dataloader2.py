@@ -119,6 +119,7 @@ def create_synced_datasets(path, emg_files, force_files, window_size=100,  elect
     for emg_file, force_file in zip(emg_files, force_files):
         # Load EMG and force signals
         emg_signal = wfdb.rdsamp(os.path.join(path, emg_file[:-4]))[0]
+        emg_signal = normalize(emg_signal, -1, 1)
         emg_signal = tf.cast(emg_signal, dtype=tf.float16)
 
         # Pré-processing the signal
@@ -150,7 +151,7 @@ def create_synced_datasets(path, emg_files, force_files, window_size=100,  elect
         dataset = dataset.concatenate(datasets[i])
     return dataset
 
-def create_synced_datasets_generator(paths, emg_files_list, force_files_list, window_size=100, electrodes=256):
+def create_synced_datasets_generator(paths, emg_files_list, force_files_list, window_size=100, electrodes=256, shift=1):
     """
     Yields datasets generated from processing multiple data files in a generator fashion.
 
@@ -165,7 +166,7 @@ def create_synced_datasets_generator(paths, emg_files_list, force_files_list, wi
     """
     for path in paths:
         for emg_file, force_file in zip(emg_files_list, force_files_list):
-            yield from create_synced_datasets(path, emg_file, force_file, window_size=window_size, electrodes=electrodes)
+            yield from create_synced_datasets(path, emg_file, force_file, window_size=window_size, electrodes=electrodes, shift=shift)
 
 def preprocess_force(force):
     """

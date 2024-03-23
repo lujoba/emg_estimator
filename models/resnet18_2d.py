@@ -147,7 +147,7 @@ def build_model(sequence_length=100, embed_dim=256, complex=False):
     ######################################################
     # Linear Combinator
     ######################################################
-    x = layers.Dense(embed_dim)(x)
+    x = layers.Dense(embed_dim, activation="softsign")(x)
     ######################################################
     # Model Building
     ######################################################

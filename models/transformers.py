@@ -213,7 +213,7 @@ def build_model(sequence_length=100, embed_dim=256, num_channels=1, complex=Fals
             name="transformer_layer"
         )(x)
     x = layers.GlobalMaxPooling1D()(x)
-    outputs = layers.Dense(embed_dim, activation=tf.keras.activations.swish)(x)
+    outputs = layers.Dense(embed_dim, activation="softsign")(x)
 
     model = keras.Model(inputs=inputs, outputs=outputs)
     return model

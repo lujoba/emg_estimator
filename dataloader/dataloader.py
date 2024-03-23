@@ -23,7 +23,7 @@ def synced_windows(emg_signal, force_signal, window_size=100):
     # Amostra o sinal de EMG de acordo com a relação de frequência
     emg_step = emg_samples_per_force_sample
     for i in range(num_force_samples):
-        start = i*emg_step
+        start = i * emg_step
         end = start + window_size
         try:
             emg_windows[i] = emg_signal[start:end]
@@ -49,14 +49,13 @@ def force_data(path, force_file):
             force_signal = force_signal[5:]
             # Filter the high frequencies
             force_signal = butter_lowpass_filter(force_signal, cutoff, fs, order=4)
-            force_signal = normalize(force_signal, -1, 1)
             # Normalize by dividing by the maximum absolute value
-            # max_abs_value = tf.reduce_max(tf.abs(force_signal))
-            # force_signal = tf.divide(force_signal, max_abs_value) # force_signal /= max_abs_value
+            max_abs_value = tf.reduce_max(tf.abs(force_signal))
+            force_signal = tf.divide(force_signal, max_abs_value) # force_signal /= max_abs_value
             force_signal = tf.cast(force_signal, dtype=tf.float16)
             return force_signal
 
-def create_synced_datasets(path, emg_files, force_files, window_size=100, electrodes=256):
+def create_synced_datasets(path, emg_files, force_files, window_size=100, electrodes=256, shift=1):
     datasets = []
     weights_dataset = []
     for emg_file, force_file in zip(emg_files, force_files):
@@ -88,10 +87,10 @@ def create_synced_datasets(path, emg_files, force_files, window_size=100, electr
     return dataset
 
 # @tf.function
-def create_synced_datasets_generator(paths, emg_files_list, force_files_list, window_size=100, electrodes=256):
+def create_synced_datasets_generator(paths, emg_files_list, force_files_list, window_size=100, electrodes=256, shift=1):
     for path in paths:
         for emg_file, force_file in zip(emg_files_list, force_files_list):
-            yield from create_synced_datasets(path, emg_file, force_file, window_size=window_size, electrodes=electrodes)
+            yield from create_synced_datasets(path, emg_file, force_file, window_size=window_size, electrodes=electrodes, shift=shift)
 
 def calculate_differential_matrices(input_array, num_chunks):
     """

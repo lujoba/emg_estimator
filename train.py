@@ -7,7 +7,7 @@ import argparse
 from utils.utils import *
 from utils.data_lists import *
 from utils.callbacks import get_callbacks
-from dataloader.dataloader import *
+from dataloader.dataloader2 import *
 from models.data_augmentation import *
 from models.deep_lstm import build_model
 
@@ -68,6 +68,7 @@ def training(args):
     INPUT_SHAPE_1 = config["input_shape"][1]
     OUTPUT_SHAPE = config["output_shape"]
     EPOCHS = config["epoch"]
+    SHIFT = config["shift"][0]
     DA = config["data_augment"]
 
     # Build the model base architecture
@@ -142,7 +143,7 @@ def training(args):
                     ])
                 # Compile the model
                 optimizer = keras.optimizers.Adam(learning_rate=1e-3)
-                model.compile(optimizer=optimizer, loss=loss, metrics=['mse', 'mae', sse])
+                model.compile(optimizer=optimizer, loss='mse', metrics=['mae', sse])
 
                 # Creat a path for the dataset
                 path1 = [subjects[i][0]]
@@ -154,7 +155,7 @@ def training(args):
                     tf.data.Dataset.from_generator(
                         lambda: create_synced_datasets_generator(
                             path1, emg_tr_files_lists, force_tr_files_lists,
-                            INPUT_SHAPE_0, INPUT_SHAPE_1
+                            INPUT_SHAPE_0, INPUT_SHAPE_1, SHIFT
                         ),
                         output_signature=(
                             tf.TensorSpec(
@@ -163,7 +164,7 @@ def training(args):
                             tf.TensorSpec(shape=(OUTPUT_SHAPE,), dtype=tf.float16),
                         ),
                     )
-                    .shuffle(buffer_size=BATCH_SIZE * 5)
+                    .shuffle(buffer_size=BATCH_SIZE * 10)
                     .batch(BATCH_SIZE)
                     .cache()
                     .prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
@@ -174,7 +175,7 @@ def training(args):
                     tf.data.Dataset.from_generator(
                         lambda: create_synced_datasets_generator(
                             path2, emg_vl_files_lists, force_vl_files_lists,
-                            INPUT_SHAPE_0, INPUT_SHAPE_1
+                            INPUT_SHAPE_0, INPUT_SHAPE_1, SHIFT
                         ),
                         output_signature=(
                             tf.TensorSpec(
@@ -193,7 +194,7 @@ def training(args):
                     tf.data.Dataset.from_generator(
                         lambda: create_synced_datasets_generator(
                             path3, emg_te_files_lists, force_te_files_lists,
-                            INPUT_SHAPE_0, INPUT_SHAPE_1
+                            INPUT_SHAPE_0, INPUT_SHAPE_1, SHIFT
                         ),
                         output_signature=(
                             tf.TensorSpec(
@@ -221,7 +222,6 @@ def training(args):
                 # print("Test MSE:", mse_)
                 # print("Test MAE:", mae_)
                 # print("Test SSE:", sse_)
-                break
             else:
                 print(f"Index {i + 1} is out of range. Skipping processing for this subject.")
 
