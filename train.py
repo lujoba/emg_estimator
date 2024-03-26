@@ -7,7 +7,7 @@ import argparse
 from utils.utils import *
 from utils.data_lists import *
 from utils.callbacks import get_callbacks
-from dataloader.dataloader2 import *
+from dataloader.dataloader_old import *
 from models.data_augmentation import *
 from models.deep_lstm import build_model
 
@@ -68,7 +68,7 @@ def training(args):
     INPUT_SHAPE_1 = config["input_shape"][1]
     OUTPUT_SHAPE = config["output_shape"]
     EPOCHS = config["epoch"]
-    SHIFT = config["shift"][0]
+    SHIFT = int(config["shift"])
     DA = config["data_augment"]
 
     # Build the model base architecture
@@ -143,12 +143,11 @@ def training(args):
                     ])
                 # Compile the model
                 optimizer = keras.optimizers.Adam(learning_rate=1e-3)
-                model.compile(optimizer=optimizer, loss='mse', metrics=['mae', sse])
+                model.compile(optimizer=optimizer, loss=loss, metrics=['mse', 'mae', sse])
 
                 # Creat a path for the dataset
                 path1 = [subjects[i][0]]
                 path2 = [subjects[i][1]]
-                path3 = [subjects[i][1]]
 
                 # Generate the Training Dataset
                 train_dataset = (
@@ -164,7 +163,7 @@ def training(args):
                             tf.TensorSpec(shape=(OUTPUT_SHAPE,), dtype=tf.float16),
                         ),
                     )
-                    .shuffle(buffer_size=BATCH_SIZE * 10)
+                    .shuffle(buffer_size=int(36000))
                     .batch(BATCH_SIZE)
                     .cache()
                     .prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
@@ -189,24 +188,6 @@ def training(args):
                     .prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
                 )
 
-                # Generate the Test Dataset
-                test_dataset = (
-                    tf.data.Dataset.from_generator(
-                        lambda: create_synced_datasets_generator(
-                            path3, emg_te_files_lists, force_te_files_lists,
-                            INPUT_SHAPE_0, INPUT_SHAPE_1, SHIFT
-                        ),
-                        output_signature=(
-                            tf.TensorSpec(
-                                shape=(INPUT_SHAPE_0, INPUT_SHAPE_1), dtype=tf.float16
-                            ),
-                            tf.TensorSpec(shape=(OUTPUT_SHAPE,), dtype=tf.float16),
-                        ),
-                    )
-                    .batch(BATCH_SIZE)
-                    .prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
-                )
-
                 # Load callbacks
                 callbacks = get_callbacks(args.model, i + 1, DA)
 
@@ -217,11 +198,29 @@ def training(args):
                     validation_data=val_dataset,
                     callbacks=callbacks,
                 )
-                # loss_, mse_, mae_, sse_ = model.evaluate(test_dataset)
-                # print("Test LOSS:", loss_)
-                # print("Test MSE:", mse_)
-                # print("Test MAE:", mae_)
-                # print("Test SSE:", sse_)
+
+                # Create a TFLite converter from your Keras model
+                converter = tf.lite.TFLiteConverter.from_keras_model(model)
+
+                converter.optimizations = [tf.lite.Optimize.DEFAULT]
+                converter.representative_dataset = val_dataset
+
+                # Configure the converter to use Select TF ops and disable tensor list lowering
+                converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS]
+                converter._experimental_lower_tensor_list_ops = False
+
+                # Perform the conversion
+                quantized_model = converter.convert()
+
+                if DA:
+                    file_path=f'logs/models/{args.model}/wa_all_fingers/subject_{i + 1}/'
+                else:
+                    file_path=f'logs/models/{args.model}/na_all_fingers/subject_{i + 1}/'
+
+                with open(file_path + f'quantized_{args.model}.tflite', 'wb') as f:
+                    f.write(quantized_model)
+
+                break
             else:
                 print(f"Index {i + 1} is out of range. Skipping processing for this subject.")
 

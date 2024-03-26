@@ -151,10 +151,10 @@ def sse(y_true, y_pred):
 
 def loss(signal, estimate):
     # Calcula a potência do sinal
-    power = tf.reduce_sum(tf.square(signal), axis=1)
+    power = tf.reduce_sum(tf.square(100 * signal), axis=1)
 
     # Pondera a função de perda de acordo com a potência
-    weighted_loss = 100 * power * tf.keras.losses.mse(estimate, signal)
+    weighted_loss = power * tf.keras.losses.mse(estimate, signal)
 
     return weighted_loss
 
@@ -179,9 +179,12 @@ def mse_per_channel_slice(y_true, y_pred, slice_size):
     mse_per_channel = np.array([np.mean((true - pred)**2) for true, pred in zip(y_true_slices, y_pred_slices)])
     return mse_per_channel
 
-def load_model_from_checkpoint(model, model_name, subject_number):
+def load_model_from_checkpoint(model, model_name, subject_number, DA):
     # Define the directory path for the checkpoint
-    checkpoint_dir = f"../logs/models/{model_name}/na_all_fingers/subject_{subject_number}/"
+    if not DA:
+        checkpoint_dir = f"../logs/models/{model_name}/na_all_fingers/subject_{subject_number}/"
+    else:
+        checkpoint_dir = f"../logs/models/{model_name}/wa_all_fingers/subject_{subject_number}/"
 
     # Create a tf.train.Checkpoint object with the model
     checkpoint = tf.train.Checkpoint(model=model)
@@ -207,3 +210,19 @@ def butter_lowpass_filter(data, cutoff, fs, order=4):
     b, a = butter_lowpass(cutoff, fs, order=order)
     y = filtfilt(b, a, data, axis=0)
     return y
+
+def standardize(input_tensor, axes=None, epsilon=1e-8):
+    """
+    Standardizes the input tensor along the specified axes.
+    
+    Args:
+    - input_tensor: Input tensor to be standardized.
+    - axes: Axes along which to compute mean and variance. If None, computes across all axes.
+    - epsilon: Small value to prevent division by zero.
+    
+    Returns:
+    - Standardized tensor.
+    """
+    mean, variance = tf.nn.moments(input_tensor, axes=axes)
+    standardized_tensor = (input_tensor - mean) / tf.sqrt(variance + epsilon)
+    return standardized_tensor

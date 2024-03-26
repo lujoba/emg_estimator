@@ -14,12 +14,11 @@ dataset_path: data/1dof_dataset/
 # interpolation.
 input_shape:
   - 100
-  - 112
-shift:
-  - 10
+  - 256
+shift: 21
 output_shape: 5
-batch_size: 128
-epoch: 200
+batch_size: 256
+epoch: 100
 data_augment: False
 
 # Specific model params
@@ -29,7 +28,7 @@ model_params:
     - output_shape: 128
     - num_layers: 8
 
-  resnet18_2d:
+  resnet18:
     - complex: False
 
   resnet18_3d:
