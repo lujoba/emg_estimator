@@ -56,7 +56,7 @@ def get_callbacks(model_name, subject_index, DA=False):
     reduce_lr_callback = tf.keras.callbacks.ReduceLROnPlateau(
         monitor='val_loss',
         factor=0.75,
-        patience=5,
+        patience=10,
         min_lr=1e-8,
     )
 
