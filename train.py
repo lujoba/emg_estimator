@@ -202,8 +202,8 @@ def training(args):
                 # Create a TFLite converter from your Keras model
                 converter = tf.lite.TFLiteConverter.from_keras_model(model)
 
-                converter.optimizations = [tf.lite.Optimize.DEFAULT]
-                converter.representative_dataset = val_dataset
+                # converter.optimizations = [tf.lite.Optimize.DEFAULT]
+                # converter.representative_dataset = val_dataset
 
                 # Configure the converter to use Select TF ops and disable tensor list lowering
                 converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS]

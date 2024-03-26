@@ -18,7 +18,7 @@ input_shape:
 shift: 21
 output_shape: 5
 batch_size: 256
-epoch: 100
+epoch: 200
 data_augment: True
 
 # Specific model params
