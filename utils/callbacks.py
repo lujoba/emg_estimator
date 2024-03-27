@@ -1,6 +1,20 @@
 import tensorflow as tf
 
 
+class ModelCheckpoint(tf.keras.callbacks.Callback):
+    def __init__(self, filepath):
+        super(ModelCheckpoint, self).__init__()
+        self.filepath = filepath
+
+    def on_epoch_end(self, epoch, logs=None, model_name='model'):
+        if logs is None:
+            logs = {}
+        val_loss = logs.get('val_loss')
+        if val_loss is not None:
+            self.model.save_weights(self.filepath + f'{model_name}.h5', overwrite=True)
+            print(f"\nSaving model weights at epoch {epoch + 1} with validation loss {val_loss:.4f}\n")
+
+
 # Definindo os callbacks para salvar o modelo e o TensorBoard
 def get_callbacks(model_name, subject_index, DA=False):
     """
@@ -29,15 +43,7 @@ def get_callbacks(model_name, subject_index, DA=False):
     else:
         file_path=f'logs/models/{model_name}/na_all_fingers/subject_{subject_index}/'
 
-    model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-        filepath=file_path,
-        monitor="val_loss",
-        verbose=1,
-        save_best_only=True,
-        save_weights_only=True,
-        mode="min",
-        save_format="tf"
-    )
+    model_checkpoint_callback = ModelCheckpoint(file_path, model_name)
 
     tensorboard_callback = tf.keras.callbacks.TensorBoard(
         log_dir=file_path,
