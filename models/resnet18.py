@@ -127,21 +127,21 @@ def build_model(sequence_length=100, embed_dim=256, complex=False):
     ######################################################
     # Feature extraction filter
     ######################################################
-    x = Convolution2D(filters=16, kernel_size=(3, 7), padding='same', complex=complex)(x) # Conv2Plus1D
+    x = Convolution2D(filters=16, kernel_size=(3*ratio, 3), padding='same', complex=complex)(x) # Conv2Plus1D
     x = layers.BatchNormalization()(x)
     x = layers.ReLU()(x)
     x = ResizeSignal(-(embed_dim // -(2 * ratio)), -(sequence_length // -2))(x)
     # Block 1
-    x = add_residual_block(x, 16, (3, 7), complex=complex)
+    x = add_residual_block(x, 16, (3*ratio, 3), complex=complex)
     x = ResizeSignal(-(embed_dim // -(4 * ratio)), -(sequence_length // -4))(x)
     # Block 2
-    x = add_residual_block(x, 32, (3, 7), complex=complex)
+    x = add_residual_block(x, 32, (3*ratio, 3), complex=complex)
     x = ResizeSignal(-(embed_dim // -(8 * ratio)), -(sequence_length // -8))(x)
     # Block 3
-    x = add_residual_block(x, 64, (3, 7), complex=complex)
+    x = add_residual_block(x, 64, (3*ratio, 3), complex=complex)
     x = ResizeSignal(-(embed_dim // -(16 * ratio)), -(sequence_length // -16))(x)
     # Block 4
-    x = add_residual_block(x, embed_dim, (3, 7), complex=complex)
+    x = add_residual_block(x, embed_dim, (3*ratio, 3), complex=complex)
 
     # Features Block
     x = layers.GlobalAveragePooling2D()(x)

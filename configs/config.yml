@@ -15,11 +15,11 @@ dataset_path: data/1dof_dataset/
 input_shape:
   - 100
   - 256
-shift: 21
+shift: 1
 output_shape: 5
 batch_size: 256
 epoch: 200
-data_augment: True
+data_augment: False
 
 # Specific model params
 model_params:

@@ -220,7 +220,6 @@ def training(args):
                 with open(file_path + f'quantized_{args.model}.tflite', 'wb') as f:
                     f.write(quantized_model)
 
-                break
             else:
                 print(f"Index {i + 1} is out of range. Skipping processing for this subject.")
 
