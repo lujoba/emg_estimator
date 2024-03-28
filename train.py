@@ -189,7 +189,7 @@ def training(args):
                 )
 
                 # Load callbacks
-                callbacks = get_callbacks(args.model, i + 1, DA)
+                callbacks = get_callbacks(args.model, i+1, DA)
 
                 # Fit data to model
                 model.fit(
