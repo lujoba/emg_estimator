@@ -5,7 +5,7 @@ class ModelCheckpoint(tf.keras.callbacks.Callback):
     def __init__(self, filepath, model_name='model'):
         super(ModelCheckpoint, self).__init__()
         self.filepath = filepath
-        self.model = model_name
+        self.model_name = model_name
 
     def on_epoch_end(self, epoch, logs=None):
         if logs is None:
@@ -44,15 +44,7 @@ def get_callbacks(model_name, subject_index, DA=False):
     else:
         file_path=f'logs/models/{model_name}/na_all_fingers/subject_{subject_index}/'
 
-    model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-        filepath=file_path,
-        monitor="val_loss",
-        verbose=1,
-        save_best_only=True,
-        save_weights_only=True,
-        mode="min",
-        save_format="tf"
-    )
+    model_checkpoint_callback = ModelCheckpoint(filepath=file_path, model_name=model_name)
 
     tensorboard_callback = tf.keras.callbacks.TensorBoard(
         log_dir=file_path,
