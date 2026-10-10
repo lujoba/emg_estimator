@@ -1,0 +1,62 @@
+# GVT leave-one-subject-out a partir do RAW (PhD_LOSO). Configuração da execução do artigo:
+#   loso_best_d32_vp4_ma3_norm_trainonly  (best, d_model 32, 4 pacientes de validação, val_loss suavizada
+#   em 3 épocas, padronização por paciente, pool só com _train)
+#   emgpred train loso
+#   emgpred train loso --set 'augmentation.names=["amplitude","eletrodo"]'
+#   emgpred train loso --set data.normalize=false paths.init_from=logs/fixo_best_8020_d32_aug-com-amplitude
+# Arquitetura do LOSO antigo (logs/LOO): --set model.d_model=128 model.n_layers_time=6 model.n_layers_space=6
+#   model.mlp_ratio=6.0 model.dropout=0.2
+[paths]
+raw_dir            = "$EMGPRED_DATA/processed/RAW"
+cache_dir          = "$EMGPRED_DATA/processed/RAW128_INDIV_CACHE"
+saliency_dir       = "$EMGPRED_LOGS/importancia_eletrodos"
+best_channels_file = "configs/channels/best32.json"
+save_dir           = "logs/loso_{sel}{suffix}{aug}{loso_tag}"
+init_from          = ""  # pasta de modelos individuais (mesma seleção/d_model, sem augmentation) para inicializar
+
+[data]
+selection = "best"       # best | media | sharpe | todos | aleatorio
+k = 32
+val_patients = 4         # _test.npz dos 4 pacientes seguintes ao retido; 0 = sorteio de val_fraction da pool
+val_fraction = 0.05
+pool_test = false        # false: pool só com _train (libera o _test dos vistos para avaliação)
+eval_seen = true         # avalia o _test.npz de cada paciente de treino (vistos.csv)
+normalize = true         # padroniza cada canal com média/desvio do _train do próprio paciente
+seed = 42
+
+[model]
+name = "gvt"
+d_model = 32
+n_heads = 4
+n_layers_time = 4
+n_layers_space = 4
+mlp_ratio = 4.0
+dropout = 0.4
+pooling_method = "cls"
+pos_embedding_method = "learned"
+use_causal_mask_time = true
+use_causal_mask_space = false
+
+[augmentation]           # só no treino; ordem fixa: amplitude, passabanda, fase, deslocamento, mascara,
+names = []               # ruido, mascara_freq, warp, queda_canal, eletrodo
+
+[training]
+batch_size = 512         # GPU de 80 GB; 128 = mesmo lote dos individuais (mais lento)
+steps_per_epoch = 2000   # "época" de ~1 M janelas -> valida com mais frequência
+epochs = 200
+learning_rate = 1e-3
+clipnorm = 1.0
+early_stop_patience = 15
+lr_patience = 5
+lr_factor = 0.75
+val_smooth = 3           # checkpoint/EarlyStopping/ReduceLR na média móvel (3 épocas) da val_loss
+
+[kalman]
+method = "window"
+half_window = 3
+q = 0.012
+r = 1.0
+
+[moving_average]
+half_window = 3
+causal = false

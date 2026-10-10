@@ -1,0 +1,57 @@
+# Autopruning 128 -> 32 por paciente, protocolo 80/20 (PhD_AutoPruning)
+#   emgpred train autopruning [--eval-only] [--set model.d_model=32]
+[paths]
+raw_dir      = "$EMGPRED_DATA/processed/RAW"
+cache_dir    = "$EMGPRED_DATA/processed/RAW128_INDIV_CACHE"
+saliency_dir = "$EMGPRED_LOGS/importancia_eletrodos"
+save_dir     = "logs/autopruning_32_8020{suffix}"
+
+[data]
+split_test_size = 0.2    # treino 80% / validação 20% do _train.npz
+seed = 42
+
+[model]                  # backbone (igual ao gvt_individual)
+d_model = 128
+n_heads = 4
+n_layers_time = 4
+n_layers_space = 4
+mlp_ratio = 4.0
+dropout = 0.4
+pooling_method = "cls"
+pos_embedding_method = "learned"
+use_causal_mask_time = true
+use_causal_mask_space = false
+
+[training]
+batch_size = 128
+epochs = 400
+learning_rate = 1e-3
+clipnorm = 1.0
+early_stop_patience = 15   # contado só depois do pruning
+lr_patience = 10
+lr_factor = 0.75
+lr_min_delta = 1e-4      # igual ao padrão do ReduceLROnPlateau do Keras usado nos modelos fixos
+
+[autopruning]
+k_final = 32
+warmup_epochs = 3
+prune_epochs = 15
+lambda_task = 0.1
+tau_start = 2.0
+tau_end = 0.1
+calib_max = 20000
+
+[references]             # seleções fixas treinadas com `emgpred train individual` (mesmo split e d_model)
+ref128   = "logs/fixo_todos_8020"
+sharpe32 = "logs/fixo_sharpe_8020{suffix}"
+top32    = "logs/fixo_media_8020{suffix}"
+
+[kalman]
+method = "window"
+half_window = 3
+q = 0.012
+r = 1.0
+
+[moving_average]         # alternativa mais barata para o dispositivo (métricas *_ma)
+half_window = 3          # 2h+1 predições
+causal = false           # true: só predições passadas (sem esperar o futuro)

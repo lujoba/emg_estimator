@@ -1,0 +1,24 @@
+# Importância de eletrodos por saliência + seleção por fronteira eficiente
+[paths]
+raw_dir   = "$EMGPRED_DATA/processed/RAW"
+model_dir = "$EMGPRED_LOGS/novo"            # modelos individuais de 128 eletrodos
+weights_name = "model.weights.h5"
+save_dir  = "logs/importancia_eletrodos"
+
+[model]
+name = "gvt"
+d_model = 128
+n_heads = 4
+n_layers_time = 4
+n_layers_space = 4
+mlp_ratio = 4.0
+dropout = 0.4
+pooling_method = "cls"
+pos_embedding_method = "learned"
+use_causal_mask_time = true
+use_causal_mask_space = false
+
+[selection]
+k = 32
+n_samples = 5000
+seed = 42

@@ -1,0 +1,10 @@
+# Criação dos datasets por paciente (notebook PhD_CriacaoDataset)
+[paths]
+emg_root    = "$EMGPRED_DATA/Prosthetic Control - October 2024/Hand gestures"
+angles_root = "$EMGPRED_DATA/Prosthetic Control - October 2024/Processed Kinetics Valeria – August 2025"
+raw_dir     = "$EMGPRED_DATA/processed/RAW"
+
+[dataset]                # normalização: min/max por paciente, só nos trechos de treino
+test_size = 0.1          # trecho final de cada gravação vai para o teste
+# true reproduz os datasets da tese (ver docstring de file_layout)
+legacy_alignment = true

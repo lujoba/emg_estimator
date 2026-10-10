@@ -1,0 +1,15 @@
+# Python 3.12 (TensorFlow 2.21 não suporta 3.13+)
+tensorflow[and-cuda]>=2.21,<2.22
+keras>=3.15
+tensorboard
+numpy
+pandas
+scipy
+scikit-learn
+h5py
+pykalman
+matplotlib
+seaborn
+tqdm
+ipykernel
+ipywidgets

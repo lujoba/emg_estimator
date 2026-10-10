@@ -1,0 +1,45 @@
+# Busca da combinação de data augmentation (PhD_AugSearch): best, d_model 32, validação temporal no BBS
+#   emgpred aug-search                          -> logs/aug_search_best_d32/{trials.csv, escolhida.json}
+#   emgpred train individual --set data.selection=best model.d_model=32 'augmentation.names=["amplitude"]'
+[paths]
+raw_dir            = "$EMGPRED_DATA/processed/RAW"
+cache_dir          = "$EMGPRED_DATA/processed/RAW128_INDIV_CACHE"
+saliency_dir       = "$EMGPRED_LOGS/importancia_eletrodos"
+best_channels_file = "configs/channels/best32.json"
+search_dir         = "logs/aug_search_{sel}{suffix}"
+
+[data]
+selection = "best"
+k = 32
+seed = 42
+
+[search]
+method = "greedy"        # greedy | exhaustive (todas as combinações)
+tune_patients = ["BBS"]  # pacientes usados só para escolher a combinação
+min_rel_gain = 0.01      # greedy: aceita uma camada só se reduzir a perda de validação em ≥ 1%
+val_fraction = 0.2       # validação temporal: 20% finais de cada gravação do _train.npz
+gap_windows = 4          # janelas de treino descartadas na fronteira
+candidates = ["amplitude", "passabanda", "fase", "deslocamento", "mascara",
+              "ruido", "mascara_freq", "warp", "queda_canal", "eletrodo"]
+
+[model]
+name = "gvt"
+d_model = 32
+n_heads = 4
+n_layers_time = 4
+n_layers_space = 4
+mlp_ratio = 4.0
+dropout = 0.4
+pooling_method = "cls"
+pos_embedding_method = "learned"
+use_causal_mask_time = true
+use_causal_mask_space = false
+
+[training]
+batch_size = 128
+epochs = 400
+learning_rate = 1e-3
+clipnorm = 1.0
+early_stop_patience = 15
+lr_patience = 10
+lr_factor = 0.75

@@ -1,0 +1,39 @@
+# Baselines do artigo, 128 eletrodos, mesmo protocolo do GVT individual (PhD_Baselines)
+#   emgpred train individual -c configs/baselines.toml                           -> Conv(2+1)D
+#   emgpred train individual -c configs/baselines.toml --set model.name=resnet50
+#   emgpred train individual -c configs/baselines.toml --set model.name=pet
+# `raulnet` também existe (2 grades de 64, filtros 128/16/32), mas saiu do artigo: ~2 h por época.
+[paths]
+raw_dir   = "$EMGPRED_DATA/processed/RAW"
+cache_dir = "$EMGPRED_DATA/processed/RAW128_INDIV_CACHE"
+save_dir  = "logs/baseline_{model}_8020"
+
+[data]
+selection = "todos"
+split_test_size = 0.2    # treino 80% / validação 20% do _train.npz
+seed = 42
+
+[model]
+name = "conv2plus1d"     # conv2plus1d | resnet50 | pet | raulnet
+
+[augmentation]           # sem augmentation nos baselines
+names = []
+
+[training]
+batch_size = 128
+epochs = 400
+learning_rate = 1e-3
+clipnorm = 1.0
+early_stop_patience = 15
+lr_patience = 10
+lr_factor = 0.75
+
+[kalman]
+method = "window"
+half_window = 3
+q = 0.012
+r = 1.0
+
+[moving_average]
+half_window = 3
+causal = false
