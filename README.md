@@ -1,4 +1,4 @@
-# emgpred: estimação de ângulos dos dedos a partir de HD-sEMG
+# Estimação de ângulos dos dedos a partir de HD-sEMG
 
 Código da tese de doutorado: estimação contínua dos 5 ângulos de flexão dos dedos a partir de EMG
 de alta densidade (128 eletrodos), com o **GlobalViewTransformer (GVT)**, em encoders temporal e
